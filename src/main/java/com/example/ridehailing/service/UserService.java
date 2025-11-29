@@ -2,6 +2,7 @@ package com.example.ridehailing.service;
 
 import com.example.ridehailing.dto.UserDto;
 import com.example.ridehailing.dto.UserRequestDto;
+import com.example.ridehailing.exception.ValidationException;
 import com.example.ridehailing.model.User;
 import com.example.ridehailing.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,5 +40,10 @@ public class UserService {
             }
         }
         return null;
+    }
+
+    public User getUserEntityById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ValidationException("User not found"));
     }
 }

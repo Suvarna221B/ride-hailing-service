@@ -2,6 +2,7 @@ package com.example.ridehailing.service;
 
 import com.example.ridehailing.dto.UserDto;
 import com.example.ridehailing.dto.UserRequestDto;
+import com.example.ridehailing.exception.ValidationException;
 import com.example.ridehailing.model.User;
 import com.example.ridehailing.model.UserType;
 import com.example.ridehailing.repository.UserRepository;
@@ -78,8 +79,8 @@ public class UserServiceTest {
     }
 
     @Test
-    public void testVerifyUser_Failure() {
-        UserRequestDto requestDto = UserRequestDto.builder()
+    public void testVerifyUser_InvalidPassword() {
+        UserRequestDto userRequestDto = UserRequestDto.builder()
                 .username("testuser")
                 .password("wrongpassword")
                 .build();
@@ -87,13 +88,36 @@ public class UserServiceTest {
         User user = new User();
         user.setUsername("testuser");
         user.setPassword("encodedPassword");
-        user.setUserType(UserType.RIDER);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrongpassword", "encodedPassword")).thenReturn(false);
 
-        UserDto verifiedUser = userService.verifyUser(requestDto);
+        UserDto result = userService.verifyUser(userRequestDto);
 
-        assertNull(verifiedUser);
+        assertNull(result);
+    }
+
+    @Test
+    public void testGetUserEntityById_Success() {
+        Long userId = 1L;
+        User user = new User();
+        user.setId(userId);
+        user.setUsername("testuser");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        User result = userService.getUserEntityById(userId);
+
+        assertNotNull(result);
+        assertEquals(userId, result.getId());
+        assertEquals("testuser", result.getUsername());
+    }
+
+    @Test
+    public void testGetUserEntityById_NotFound() {
+        Long userId = 1L;
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(ValidationException.class, () -> userService.getUserEntityById(userId));
     }
 }
