@@ -88,6 +88,7 @@ public class RideControllerTest {
         Long rideId = 1L;
         PaymentRequestDto paymentRequest = PaymentRequestDto.builder()
                 .amount(java.math.BigDecimal.valueOf(150.0))
+                .paymentMethod(com.example.ridehailing.model.PaymentMethod.CASH)
                 .build();
 
         mockMvc.perform(post("/api/rides/" + rideId + "/payment")
@@ -101,10 +102,11 @@ public class RideControllerTest {
         Long rideId = 1L;
         PaymentRequestDto paymentRequest = PaymentRequestDto.builder()
                 .amount(java.math.BigDecimal.valueOf(100.0))
+                .paymentMethod(com.example.ridehailing.model.PaymentMethod.CASH)
                 .build();
 
         doThrow(new com.example.ridehailing.exception.ValidationException("Payment amount does not match"))
-                .when(rideService).processPayment(eq(rideId), any());
+                .when(rideService).processPayment(eq(rideId), any(), any());
 
         mockMvc.perform(post("/api/rides/" + rideId + "/payment")
                 .contentType(MediaType.APPLICATION_JSON)

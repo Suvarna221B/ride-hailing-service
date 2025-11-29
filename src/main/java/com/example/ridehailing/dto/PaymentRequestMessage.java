@@ -1,5 +1,6 @@
 package com.example.ridehailing.dto;
 
+import com.example.ridehailing.model.PaymentMethod;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,4 +16,5 @@ public class PaymentRequestMessage {
     private Long rideId;
     private Long userId;
     private BigDecimal paymentAmount;
+    private PaymentMethod paymentMethod;
 }

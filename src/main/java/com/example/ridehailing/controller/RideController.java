@@ -41,7 +41,7 @@ public class RideController {
     @PostMapping("/{rideId}/payment")
     public ResponseEntity<Void> processPayment(@PathVariable Long rideId,
             @RequestBody PaymentRequestDto paymentRequest) {
-        rideService.processPayment(rideId, paymentRequest.getAmount());
+        rideService.processPayment(rideId, paymentRequest.getAmount(), paymentRequest.getPaymentMethod());
         return ResponseEntity.ok().build();
     }
 }

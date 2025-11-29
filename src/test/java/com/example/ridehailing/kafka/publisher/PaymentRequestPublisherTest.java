@@ -28,8 +28,9 @@ public class PaymentRequestPublisherTest {
         Long rideId = 1L;
         Long userId = 10L;
         BigDecimal paymentAmount = BigDecimal.valueOf(150.0);
+        com.example.ridehailing.model.PaymentMethod paymentMethod = com.example.ridehailing.model.PaymentMethod.CASH;
 
-        paymentRequestPublisher.publishPaymentRequest(rideId, userId, paymentAmount);
+        paymentRequestPublisher.publishPaymentRequest(rideId, userId, paymentAmount, paymentMethod);
 
         ArgumentCaptor<PaymentRequestMessage> messageCaptor = ArgumentCaptor.forClass(PaymentRequestMessage.class);
         verify(kafkaTemplate).send(eq("paymentRequest"), messageCaptor.capture());
@@ -38,5 +39,6 @@ public class PaymentRequestPublisherTest {
         assertEquals(rideId, message.getRideId());
         assertEquals(userId, message.getUserId());
         assertEquals(paymentAmount, message.getPaymentAmount());
+        assertEquals(paymentMethod, message.getPaymentMethod());
     }
 }

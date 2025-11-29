@@ -13,6 +13,7 @@ import com.example.ridehailing.service.strategy.RideUpdateStrategyFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -79,7 +80,18 @@ public class RideService {
         }
 
         @Transactional
-        public void processPayment(Long rideId, java.math.BigDecimal paymentAmount) {
+        public void completeRideWithPayment(Long rideId, Long paymentId) {
+                Ride ride = rideRepository.findById(rideId)
+                                .orElseThrow(() -> new ValidationException("Ride not found"));
+
+                ride.setPaymentId(paymentId.toString());
+
+                updateRide(rideId, ride.getDriverId(), RideUpdateType.COMPLETED);
+        }
+
+        @Transactional
+        public void processPayment(Long rideId, BigDecimal paymentAmount,
+                        com.example.ridehailing.model.PaymentMethod paymentMethod) {
                 Ride ride = rideRepository.findById(rideId)
                                 .orElseThrow(() -> new ValidationException("Ride not found"));
 
@@ -92,7 +104,8 @@ public class RideService {
                                         + ride.getFare() + ", Received: " + paymentAmount);
                 }
 
-                paymentRequestPublisher.publishPaymentRequest(ride.getId(), ride.getUserId(), paymentAmount);
+                paymentRequestPublisher.publishPaymentRequest(ride.getId(), ride.getUserId(), paymentAmount,
+                                paymentMethod);
         }
 
         private Ride createRideEntity(RideRequestDto request, User user, FareResponseDto fareResponse) {

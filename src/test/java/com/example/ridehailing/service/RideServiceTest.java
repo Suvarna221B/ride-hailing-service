@@ -122,6 +122,7 @@ public class RideServiceTest {
         public void testProcessPayment_Success() {
                 Long rideId = 1L;
                 BigDecimal fareAmount = BigDecimal.valueOf(150.0);
+                com.example.ridehailing.model.PaymentMethod paymentMethod = com.example.ridehailing.model.PaymentMethod.CASH;
 
                 Ride ride = Ride.builder()
                                 .id(rideId)
@@ -132,29 +133,31 @@ public class RideServiceTest {
 
                 when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.of(ride));
 
-                rideService.processPayment(rideId, fareAmount);
+                rideService.processPayment(rideId, fareAmount, paymentMethod);
 
-                verify(paymentRequestPublisher).publishPaymentRequest(rideId, 10L, fareAmount);
+                verify(paymentRequestPublisher).publishPaymentRequest(rideId, 10L, fareAmount, paymentMethod);
         }
 
         @Test
         public void testProcessPayment_RideNotFound() {
                 Long rideId = 1L;
                 BigDecimal fareAmount = BigDecimal.valueOf(150.0);
+                com.example.ridehailing.model.PaymentMethod paymentMethod = com.example.ridehailing.model.PaymentMethod.CASH;
 
                 when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.empty());
 
                 assertThrows(com.example.ridehailing.exception.ValidationException.class, () -> {
-                        rideService.processPayment(rideId, fareAmount);
+                        rideService.processPayment(rideId, fareAmount, paymentMethod);
                 });
 
-                verify(paymentRequestPublisher, never()).publishPaymentRequest(any(), any(), any());
+                verify(paymentRequestPublisher, never()).publishPaymentRequest(any(), any(), any(), any());
         }
 
         @Test
         public void testProcessPayment_InvalidStatus() {
                 Long rideId = 1L;
                 BigDecimal fareAmount = BigDecimal.valueOf(150.0);
+                com.example.ridehailing.model.PaymentMethod paymentMethod = com.example.ridehailing.model.PaymentMethod.CASH;
 
                 Ride ride = Ride.builder()
                                 .id(rideId)
@@ -166,10 +169,10 @@ public class RideServiceTest {
                 when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.of(ride));
 
                 assertThrows(com.example.ridehailing.exception.ValidationException.class, () -> {
-                        rideService.processPayment(rideId, fareAmount);
+                        rideService.processPayment(rideId, fareAmount, paymentMethod);
                 });
 
-                verify(paymentRequestPublisher, never()).publishPaymentRequest(any(), any(), any());
+                verify(paymentRequestPublisher, never()).publishPaymentRequest(any(), any(), any(), any());
         }
 
         @Test
@@ -177,6 +180,7 @@ public class RideServiceTest {
                 Long rideId = 1L;
                 BigDecimal rideFare = BigDecimal.valueOf(150.0);
                 BigDecimal paymentAmount = BigDecimal.valueOf(100.0);
+                com.example.ridehailing.model.PaymentMethod paymentMethod = com.example.ridehailing.model.PaymentMethod.CASH;
 
                 Ride ride = Ride.builder()
                                 .id(rideId)
@@ -188,9 +192,44 @@ public class RideServiceTest {
                 when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.of(ride));
 
                 assertThrows(com.example.ridehailing.exception.ValidationException.class, () -> {
-                        rideService.processPayment(rideId, paymentAmount);
+                        rideService.processPayment(rideId, paymentAmount, paymentMethod);
                 });
 
-                verify(paymentRequestPublisher, never()).publishPaymentRequest(any(), any(), any());
+                verify(paymentRequestPublisher, never()).publishPaymentRequest(any(), any(), any(), any());
+        }
+
+        @Test
+        public void testCompleteRideWithPayment_Success() {
+                Long rideId = 1L;
+                Long paymentId = 100L;
+
+                Ride ride = Ride.builder()
+                                .id(rideId)
+                                .userId(10L)
+                                .driverId(20L)
+                                .status(RideStatus.PAYMENT_PENDING)
+                                .build();
+
+                when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.of(ride));
+                when(rideUpdateStrategyFactory.getStrategy(RideUpdateType.COMPLETED)).thenReturn(rideUpdateStrategy);
+
+                rideService.completeRideWithPayment(rideId, paymentId);
+
+                assertEquals("100", ride.getPaymentId());
+                verify(rideUpdateStrategyFactory).getStrategy(RideUpdateType.COMPLETED);
+                verify(rideUpdateStrategy).updateRide(ride, 20L);
+                verify(rideRepository).save(ride);
+        }
+
+        @Test
+        public void testCompleteRideWithPayment_RideNotFound() {
+                Long rideId = 1L;
+                Long paymentId = 100L;
+
+                when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.empty());
+
+                assertThrows(com.example.ridehailing.exception.ValidationException.class, () -> {
+                        rideService.completeRideWithPayment(rideId, paymentId);
+                });
         }
 }

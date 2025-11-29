@@ -1,5 +1,6 @@
 package com.example.ridehailing.dto;
 
+import com.example.ridehailing.model.PaymentMethod;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,4 +14,5 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class PaymentRequestDto {
     private BigDecimal amount;
+    private PaymentMethod paymentMethod;
 }

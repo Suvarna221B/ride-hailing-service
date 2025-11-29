@@ -13,11 +13,13 @@ public class PaymentRequestPublisher {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void publishPaymentRequest(Long rideId, Long userId, java.math.BigDecimal paymentAmount) {
+    public void publishPaymentRequest(Long rideId, Long userId, java.math.BigDecimal paymentAmount,
+            com.example.ridehailing.model.PaymentMethod paymentMethod) {
         PaymentRequestMessage message = PaymentRequestMessage.builder()
                 .rideId(rideId)
                 .userId(userId)
                 .paymentAmount(paymentAmount)
+                .paymentMethod(paymentMethod)
                 .build();
         kafkaTemplate.send("paymentRequest", message);
     }
