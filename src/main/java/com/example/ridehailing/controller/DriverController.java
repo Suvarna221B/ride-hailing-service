@@ -21,14 +21,10 @@ public class DriverController {
     @Autowired
     private AuthService authService;
 
-    @PatchMapping("/location/{userId}")
+    @PutMapping("/{userId}/location")
     @RequiredRole(UserType.DRIVER)
-    public ResponseEntity<Void> updateLocation(
-            @PathVariable Long userId,
-            @RequestBody DriverLocationDto locationDto) {
-
+    public ResponseEntity<Void> updateLocation(@PathVariable Long userId, @RequestBody DriverLocationDto locationDto) {
         driverService.updateLocation(userId, locationDto);
-
         return ResponseEntity.ok().build();
     }
 

@@ -11,12 +11,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.geo.*;
+import org.springframework.data.redis.connection.RedisGeoCommands;
+import org.springframework.data.redis.core.GeoOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -38,20 +43,69 @@ public class DriverServiceTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private GeoOperations<String, Object> geoOperations;
+
     @Test
-    public void testUpdateLocation() {
-        Long driverId = 1L;
+    public void testUpdateLocation_Success() {
+        Long userId = 1L;
         DriverLocationDto locationDto = DriverLocationDto.builder()
                 .latitude(12.9716)
                 .longitude(77.5946)
+                .build();
+
+        Driver driver = Driver.builder()
+                .id(10L)
+                .user(new User())
                 .status(DriverStatus.AVAILABLE)
                 .build();
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(driverRepository.findByUserId(userId)).thenReturn(Optional.of(driver));
+        when(redisTemplate.opsForGeo()).thenReturn(geoOperations);
 
-        driverService.updateLocation(driverId, locationDto);
+        driverService.updateLocation(userId, locationDto);
 
-        verify(valueOperations).set(eq("driverId:1"), eq(locationDto), anyLong(), any());
+        verify(geoOperations).add(eq("drivers:geo"), any(Point.class), eq(10L));
+    }
+
+    @Test
+    public void testUpdateLocation_DriverNotAvailable() {
+        Long userId = 1L;
+        DriverLocationDto locationDto = DriverLocationDto.builder()
+                .latitude(12.9716)
+                .longitude(77.5946)
+                .build();
+
+        Driver driver = Driver.builder()
+                .id(10L)
+                .user(new User())
+                .status(DriverStatus.OFFLINE)
+                .build();
+
+        when(driverRepository.findByUserId(userId)).thenReturn(Optional.of(driver));
+
+        assertThrows(ValidationException.class, () -> driverService.updateLocation(userId, locationDto));
+    }
+
+    @Test
+    public void testFindNearbyDrivers() {
+        double lat = 12.9716;
+        double lon = 77.5946;
+        double radius = 5.0;
+
+        RedisGeoCommands.GeoLocation<Object> geoLocation = new RedisGeoCommands.GeoLocation<>(1L, new Point(lon, lat));
+        GeoResult<RedisGeoCommands.GeoLocation<Object>> geoResult = new GeoResult<>(geoLocation, new Distance(1.0));
+        GeoResults<RedisGeoCommands.GeoLocation<Object>> geoResults = new GeoResults<>(
+                Collections.singletonList(geoResult));
+
+        when(redisTemplate.opsForGeo()).thenReturn(geoOperations);
+        when(geoOperations.radius(eq("drivers:geo"), any(Circle.class))).thenReturn(geoResults);
+
+        List<Long> driverIds = driverService.findNearbyDrivers(lat, lon, radius);
+
+        assertNotNull(driverIds);
+        assertEquals(1, driverIds.size());
+        assertEquals(1L, driverIds.get(0));
     }
 
     @Test

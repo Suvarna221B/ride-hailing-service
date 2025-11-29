@@ -8,8 +8,12 @@ import com.example.ridehailing.model.User;
 import com.example.ridehailing.repository.DriverRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.geo.*;
+import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -30,9 +34,34 @@ public class DriverService {
         this.userService = userService;
     }
 
-    public void updateLocation(Long driverId, DriverLocationDto locationDto) {
-        String key = "driverId:" + driverId;
-        redisTemplate.opsForValue().set(key, locationDto, ttlSeconds, TimeUnit.SECONDS);
+    public void updateLocation(Long userId, DriverLocationDto locationDto) {
+        Driver driver = driverRepository.findByUserId(userId)
+                .orElseThrow(() -> new ValidationException("Driver not found"));
+
+        if (driver.getStatus() ==DriverStatus.AVAILABLE) {
+            Point point = new Point(locationDto.getLongitude(), locationDto.getLatitude());
+            redisTemplate.opsForGeo().add("drivers:geo", point, driver.getId());
+        }
+    }
+
+    public List<Long> findNearbyDrivers(double latitude, double longitude, double radiusKm) {
+        Point point = new Point(longitude, latitude);
+        Distance distance = new Distance(radiusKm, Metrics.KILOMETERS);
+        Circle circle = new Circle(point, distance);
+
+        GeoResults<RedisGeoCommands.GeoLocation<Object>> results = redisTemplate.opsForGeo()
+                .radius("drivers:geo", circle);
+
+        List<Long> driverIds = new ArrayList<>();
+        if (results != null) {
+            for (GeoResult<RedisGeoCommands.GeoLocation<Object>> result : results) {
+                Object content = result.getContent().getName();
+                 if (content instanceof Long) {
+                    driverIds.add((Long) content);
+                }
+            }
+        }
+        return driverIds;
     }
 
     public void registerDriver(Long userId) {
