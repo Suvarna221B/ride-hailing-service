@@ -1,0 +1,23 @@
+common: &default_settings
+  license_key: '<%= ENV["NEW_RELIC_LICENSE_KEY"] %>'
+  app_name: Ride Hailing Platform
+  agent_enabled: true
+  distributed_tracing:
+    enabled: true
+  transaction_tracer:
+    enabled: true
+    transaction_threshold: apdex_f
+    record_sql: obfuscated
+    log_sql: false
+    stack_trace_threshold: 0.5
+
+development:
+  <<: *default_settings
+  app_name: Ride Hailing Platform (Dev)
+
+test:
+  <<: *default_settings
+  agent_enabled: false
+
+production:
+  <<: *default_settings
