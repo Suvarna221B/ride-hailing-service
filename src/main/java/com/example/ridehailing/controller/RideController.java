@@ -1,5 +1,6 @@
 package com.example.ridehailing.controller;
 
+import com.example.ridehailing.dto.PaymentRequestDto;
 import com.example.ridehailing.dto.RideRequestDto;
 import com.example.ridehailing.dto.RideResponseDto;
 import com.example.ridehailing.model.RideUpdateType;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/rides")
@@ -23,8 +25,8 @@ public class RideController {
     }
 
     @PostMapping
-    public ResponseEntity<RideResponseDto> createRide(@RequestBody RideRequestDto request) {
-        RideResponseDto response = rideService.createRide(request);
+    public ResponseEntity<RideResponseDto> createRide(@Valid @RequestBody RideRequestDto rideRequestDto) {
+        RideResponseDto response = rideService.createRide(rideRequestDto);
         return ResponseEntity.ok(response);
     }
 
@@ -33,6 +35,13 @@ public class RideController {
             @RequestParam Long driverId,
             @RequestParam RideUpdateType updateType) {
         rideService.updateRide(rideId, driverId, updateType);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{rideId}/payment")
+    public ResponseEntity<Void> processPayment(@PathVariable Long rideId,
+            @RequestBody PaymentRequestDto paymentRequest) {
+        rideService.processPayment(rideId, paymentRequest.getAmount());
         return ResponseEntity.ok().build();
     }
 }

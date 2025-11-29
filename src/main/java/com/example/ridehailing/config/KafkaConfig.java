@@ -23,4 +23,9 @@ public class KafkaConfig {
                 .replicas(1)
                 .build();
     }
+
+    @Bean
+    public NewTopic paymentRequest() {
+        return TopicBuilder.name("paymentRequest").build();
+    }
 }

@@ -15,11 +15,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/drivers")
 public class DriverController {
 
-    @Autowired
-    private DriverService driverService;
+    private final DriverService driverService;
 
-    @Autowired
-    private AuthService authService;
+    private final AuthService authService;
+
+    public DriverController(DriverService driverService, AuthService authService) {
+        this.driverService = driverService;
+        this.authService = authService;
+    }
 
     @PutMapping("/{userId}/location")
     @RequiredRole(UserType.DRIVER)

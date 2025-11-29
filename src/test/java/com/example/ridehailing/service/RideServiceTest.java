@@ -3,6 +3,7 @@ package com.example.ridehailing.service;
 import com.example.ridehailing.dto.*;
 import com.example.ridehailing.kafka.publisher.RideRequestPublisher;
 import com.example.ridehailing.kafka.publisher.RideUpdatePublisher;
+import com.example.ridehailing.kafka.publisher.PaymentRequestPublisher;
 import com.example.ridehailing.model.Ride;
 import com.example.ridehailing.model.RideStatus;
 import com.example.ridehailing.model.RideUpdateType;
@@ -51,6 +52,9 @@ public class RideServiceTest {
 
         @Mock
         private com.example.ridehailing.service.strategy.RideUpdateStrategy rideUpdateStrategy;
+
+        @Mock
+        private PaymentRequestPublisher paymentRequestPublisher;
 
         @Test
         public void testCreateRide_Success() {
@@ -112,5 +116,81 @@ public class RideServiceTest {
                 verify(rideUpdateStrategyFactory).getStrategy(RideUpdateType.ACCEPT);
                 verify(rideUpdateStrategy).updateRide(ride, driverId);
                 verify(rideRepository).save(ride);
+        }
+
+        @Test
+        public void testProcessPayment_Success() {
+                Long rideId = 1L;
+                BigDecimal fareAmount = BigDecimal.valueOf(150.0);
+
+                Ride ride = Ride.builder()
+                                .id(rideId)
+                                .userId(10L)
+                                .status(RideStatus.PAYMENT_PENDING)
+                                .fare(fareAmount)
+                                .build();
+
+                when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.of(ride));
+
+                rideService.processPayment(rideId, fareAmount);
+
+                verify(paymentRequestPublisher).publishPaymentRequest(rideId, 10L, fareAmount);
+        }
+
+        @Test
+        public void testProcessPayment_RideNotFound() {
+                Long rideId = 1L;
+                BigDecimal fareAmount = BigDecimal.valueOf(150.0);
+
+                when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.empty());
+
+                assertThrows(com.example.ridehailing.exception.ValidationException.class, () -> {
+                        rideService.processPayment(rideId, fareAmount);
+                });
+
+                verify(paymentRequestPublisher, never()).publishPaymentRequest(any(), any(), any());
+        }
+
+        @Test
+        public void testProcessPayment_InvalidStatus() {
+                Long rideId = 1L;
+                BigDecimal fareAmount = BigDecimal.valueOf(150.0);
+
+                Ride ride = Ride.builder()
+                                .id(rideId)
+                                .userId(10L)
+                                .status(RideStatus.IN_PROGRESS)
+                                .fare(fareAmount)
+                                .build();
+
+                when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.of(ride));
+
+                assertThrows(com.example.ridehailing.exception.ValidationException.class, () -> {
+                        rideService.processPayment(rideId, fareAmount);
+                });
+
+                verify(paymentRequestPublisher, never()).publishPaymentRequest(any(), any(), any());
+        }
+
+        @Test
+        public void testProcessPayment_AmountMismatch() {
+                Long rideId = 1L;
+                BigDecimal rideFare = BigDecimal.valueOf(150.0);
+                BigDecimal paymentAmount = BigDecimal.valueOf(100.0);
+
+                Ride ride = Ride.builder()
+                                .id(rideId)
+                                .userId(10L)
+                                .status(RideStatus.PAYMENT_PENDING)
+                                .fare(rideFare)
+                                .build();
+
+                when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.of(ride));
+
+                assertThrows(com.example.ridehailing.exception.ValidationException.class, () -> {
+                        rideService.processPayment(rideId, paymentAmount);
+                });
+
+                verify(paymentRequestPublisher, never()).publishPaymentRequest(any(), any(), any());
         }
 }

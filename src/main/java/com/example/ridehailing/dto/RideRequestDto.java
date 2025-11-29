@@ -4,15 +4,25 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotNull;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class RideRequestDto {
+    @NotNull(message = "User ID is required")
     private Long userId;
-    private double startLatitude;
-    private double startLongitude;
-    private double destLatitude;
-    private double destLongitude;
+
+    @NotNull(message = "Start latitude is required")
+    private Double startLatitude;
+
+    @NotNull(message = "Start longitude is required")
+    private Double startLongitude;
+
+    @NotNull(message = "Destination latitude is required")
+    private Double destLatitude;
+
+    @NotNull(message = "Destination longitude is required")
+    private Double destLongitude;
 }

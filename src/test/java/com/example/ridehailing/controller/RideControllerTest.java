@@ -1,5 +1,6 @@
 package com.example.ridehailing.controller;
 
+import com.example.ridehailing.dto.PaymentRequestDto;
 import com.example.ridehailing.dto.RideRequestDto;
 import com.example.ridehailing.dto.RideResponseDto;
 import com.example.ridehailing.model.RideStatus;
@@ -17,6 +18,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -78,5 +81,34 @@ public class RideControllerTest {
                 .param("updateType", "ACCEPT")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testProcessPayment_Success() throws Exception {
+        Long rideId = 1L;
+        PaymentRequestDto paymentRequest = PaymentRequestDto.builder()
+                .amount(java.math.BigDecimal.valueOf(150.0))
+                .build();
+
+        mockMvc.perform(post("/api/rides/" + rideId + "/payment")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(paymentRequest)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testProcessPayment_ValidationError() throws Exception {
+        Long rideId = 1L;
+        PaymentRequestDto paymentRequest = PaymentRequestDto.builder()
+                .amount(java.math.BigDecimal.valueOf(100.0))
+                .build();
+
+        doThrow(new com.example.ridehailing.exception.ValidationException("Payment amount does not match"))
+                .when(rideService).processPayment(eq(rideId), any());
+
+        mockMvc.perform(post("/api/rides/" + rideId + "/payment")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(paymentRequest)))
+                .andExpect(status().isBadRequest());
     }
 }

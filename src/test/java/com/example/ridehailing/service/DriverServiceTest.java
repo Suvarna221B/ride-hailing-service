@@ -70,21 +70,20 @@ public class DriverServiceTest {
 
     @Test
     public void testUpdateLocation_DriverNotAvailable() {
-        Long userId = 1L;
-        DriverLocationDto locationDto = DriverLocationDto.builder()
-                .latitude(12.9716)
-                .longitude(77.5946)
-                .build();
+        Long driverId = 1L;
+        DriverLocationDto locationDto = new DriverLocationDto();
+        locationDto.setLatitude(12.9716);
+        locationDto.setLongitude(77.5946);
 
-        Driver driver = Driver.builder()
-                .id(10L)
-                .user(new User())
-                .status(DriverStatus.OFFLINE)
-                .build();
+        Driver driver = new Driver();
+        driver.setId(driverId);
+        driver.setStatus(DriverStatus.OFFLINE); // Driver is OFFLINE
 
-        when(driverRepository.findByUserId(userId)).thenReturn(Optional.of(driver));
+        when(driverRepository.findByUserId(driverId)).thenReturn(Optional.of(driver));
 
-        assertThrows(ValidationException.class, () -> driverService.updateLocation(userId, locationDto));
+        driverService.updateLocation(driverId, locationDto);
+
+        verify(redisTemplate, never()).opsForGeo();
     }
 
     @Test

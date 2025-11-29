@@ -2,8 +2,8 @@ package com.example.ridehailing.service;
 
 import com.example.ridehailing.dto.*;
 import com.example.ridehailing.exception.ValidationException;
+import com.example.ridehailing.kafka.publisher.PaymentRequestPublisher;
 import com.example.ridehailing.kafka.publisher.RideRequestPublisher;
-import com.example.ridehailing.kafka.publisher.RideUpdatePublisher;
 import com.example.ridehailing.model.Ride;
 import com.example.ridehailing.model.RideStatus;
 import com.example.ridehailing.model.RideUpdateType;
@@ -24,23 +24,23 @@ public class RideService {
         private final FareCalculationService fareCalculationService;
         private final UserService userService;
         private final RideRequestPublisher rideRequestPublisher;
-        private final RideUpdatePublisher rideUpdatePublisher;
         private final RideUpdateStrategyFactory rideUpdateStrategyFactory;
+        private final PaymentRequestPublisher paymentRequestPublisher;
 
         public RideService(RideRepository rideRepository,
                         DriverService driverService,
                         FareCalculationService fareCalculationService,
                         UserService userService,
                         RideRequestPublisher rideRequestPublisher,
-                        RideUpdatePublisher rideUpdatePublisher,
-                        RideUpdateStrategyFactory rideUpdateStrategyFactory) {
+                        RideUpdateStrategyFactory rideUpdateStrategyFactory,
+                        PaymentRequestPublisher paymentRequestPublisher) {
                 this.rideRepository = rideRepository;
                 this.driverService = driverService;
                 this.fareCalculationService = fareCalculationService;
                 this.userService = userService;
                 this.rideRequestPublisher = rideRequestPublisher;
-                this.rideUpdatePublisher = rideUpdatePublisher;
                 this.rideUpdateStrategyFactory = rideUpdateStrategyFactory;
+                this.paymentRequestPublisher = paymentRequestPublisher;
         }
 
         @Transactional
@@ -76,6 +76,23 @@ public class RideService {
 
                 rideUpdateStrategyFactory.getStrategy(updateType).updateRide(ride, driverId);
                 rideRepository.save(ride);
+        }
+
+        @Transactional
+        public void processPayment(Long rideId, java.math.BigDecimal paymentAmount) {
+                Ride ride = rideRepository.findById(rideId)
+                                .orElseThrow(() -> new ValidationException("Ride not found"));
+
+                if (ride.getStatus() != RideStatus.PAYMENT_PENDING) {
+                        throw new ValidationException("Ride must be in PAYMENT_PENDING state for payment");
+                }
+
+                if (ride.getFare().compareTo(paymentAmount) != 0) {
+                        throw new ValidationException("Payment amount does not match ride fare. Expected: "
+                                        + ride.getFare() + ", Received: " + paymentAmount);
+                }
+
+                paymentRequestPublisher.publishPaymentRequest(ride.getId(), ride.getUserId(), paymentAmount);
         }
 
         private Ride createRideEntity(RideRequestDto request, User user, FareResponseDto fareResponse) {

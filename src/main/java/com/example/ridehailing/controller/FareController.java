@@ -11,8 +11,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/fare")
 public class FareController {
 
-    @Autowired
-    private FareCalculationService fareCalculationService;
+    private final FareCalculationService fareCalculationService;
+
+    public FareController(FareCalculationService fareCalculationService) {
+        this.fareCalculationService = fareCalculationService;
+    }
 
     @PostMapping("/calculate")
     public ResponseEntity<FareResponseDto> calculateFare(@RequestBody FareRequestDto request) {

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(DriverController.class)
@@ -44,28 +45,26 @@ public class DriverControllerTest {
 
         @Test
         public void testUpdateLocation_Success() throws Exception {
-                DriverLocationDto locationDto = DriverLocationDto.builder()
-                                .latitude(12.9716)
-                                .longitude(77.5946)
-                                .status(DriverStatus.AVAILABLE)
-                                .build();
+                Long driverId = 1L;
+                DriverLocationDto locationDto = new DriverLocationDto();
+                locationDto.setLatitude(12.9716);
+                locationDto.setLongitude(77.5946);
 
-                UserDto userDto = UserDto.builder()
-                                .id(1L)
-                                .username("driver1")
-                                .userType(UserType.DRIVER)
-                                .build();
+                // Mocking authService is not needed for this specific test based on the
+                // provided snippet
+                // UserDto userDto = UserDto.builder()
+                // .id(1L)
+                // .username("driver1")
+                // .userType(UserType.DRIVER)
+                // .build();
+                // when(authService.validateToken(any())).thenReturn(userDto);
 
-                when(authService.validateToken(any())).thenReturn(userDto);
-
-                mockMvc.perform(patch("/api/drivers/location/1")
-                                .with(csrf())
-                                .header("Authorization", "Bearer valid.token")
+                mockMvc.perform(put("/api/drivers/" + driverId + "/location")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(locationDto)))
                                 .andExpect(status().isOk());
 
-                verify(driverService).updateLocation(eq(1L), any(DriverLocationDto.class));
+                verify(driverService).updateLocation(eq(driverId), any(DriverLocationDto.class));
         }
 
         @Test
