@@ -13,12 +13,14 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.geo.*;
 import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@Slf4j
 public class DriverService {
 
     private final RedisTemplate<String, Object> redisTemplate;
@@ -40,13 +42,19 @@ public class DriverService {
     }
 
     public void updateLocation(Long userId, DriverLocationDto locationDto) {
+        log.info("Updating location for user {}: lat={}, lon={}", userId, locationDto.getLatitude(),
+                locationDto.getLongitude());
         Driver driver = driverRepository.findByUserId(userId)
-                .orElseThrow(() -> new ValidationException("Driver not found"));
-            Point point = new Point(locationDto.getLongitude(), locationDto.getLatitude());
-            redisTemplate.opsForGeo().add("drivers:geo", point, driver.getId());
+                .orElseThrow(() -> {
+                    log.error("Driver not found for user ID: {}", userId);
+                    return new ValidationException("Driver not found");
+                });
+        Point point = new Point(locationDto.getLongitude(), locationDto.getLatitude());
+        redisTemplate.opsForGeo().add("drivers:geo", point, driver.getId());
     }
 
     public List<Long> findNearbyDrivers(double latitude, double longitude, double radiusKm) {
+        log.info("Finding nearby drivers at lat={}, lon={}, radius={}km", latitude, longitude, radiusKm);
         Point point = new Point(longitude, latitude);
         Distance distance = new Distance(radiusKm, Metrics.KILOMETERS);
         Circle circle = new Circle(point, distance);
@@ -63,11 +71,14 @@ public class DriverService {
                 }
             }
         }
+        log.info("Found {} nearby drivers", driverIds.size());
         return driverIds;
     }
 
     public void registerDriver(Long userId) {
+        log.info("Registering driver for user ID: {}", userId);
         if (driverRepository.findByUserId(userId).isPresent()) {
+            log.warn("Driver already registered for user ID: {}", userId);
             throw new ValidationException("Driver already registered");
         }
 
@@ -80,27 +91,39 @@ public class DriverService {
                 .build();
 
         driverRepository.save(driver);
+        log.info("Driver registered successfully with ID: {}", driver.getId());
     }
 
-    public void updateDriverStatusUsingDriverId(Long driverId, String status){
+    public void updateDriverStatusUsingDriverId(Long driverId, String status) {
+        log.info("Updating status for driver ID: {} to {}", driverId, status);
         Driver driver = driverRepository.findById(driverId)
-                .orElseThrow(() -> new ValidationException("Driver not found for user"));
+                .orElseThrow(() -> {
+                    log.error("Driver not found with ID: {}", driverId);
+                    return new ValidationException("Driver not found for user");
+                });
         updateDriverStatus(status, driver);
     }
+
     public void updateDriverStatusUsingUserId(Long userId, String statusUpdate) {
+        log.info("Updating status for user ID: {} to {}", userId, statusUpdate);
         Driver driver = driverRepository.findByUserId(userId)
-                .orElseThrow(() -> new ValidationException("Driver not found for user"));
+                .orElseThrow(() -> {
+                    log.error("Driver not found for user ID: {}", userId);
+                    return new ValidationException("Driver not found for user");
+                });
         updateDriverStatus(statusUpdate, driver);
     }
 
     private void updateDriverStatus(String statusUpdate, Driver driver) {
         DriverStatus driverStatus = DriverStatus.fromString(statusUpdate);
+        log.info("Changing driver {} status from {} to {}", driver.getId(), driver.getStatus(), driverStatus);
 
         switch (driverStatus) {
             case AVAILABLE -> {
-
+                // No specific Redis action for AVAILABLE here, handled by updateLocation
             }
             case OFFLINE, BUSY -> {
+                log.info("Removing driver {} from Redis geo index due to status {}", driver.getId(), driverStatus);
                 redisTemplate.opsForGeo().remove("drivers", driver.getId().toString());
             }
             default -> {

@@ -14,8 +14,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 
+import lombok.extern.slf4j.Slf4j;
+
 @RestController
 @RequestMapping("/api/rides")
+@Slf4j
 public class RideController {
 
     private final RideService rideService;
@@ -26,7 +29,9 @@ public class RideController {
 
     @PostMapping
     public ResponseEntity<RideResponseDto> createRide(@Valid @RequestBody RideRequestDto rideRequestDto) {
+        log.info("Received ride creation request for user ID: {}", rideRequestDto.getUserId());
         RideResponseDto response = rideService.createRide(rideRequestDto);
+        log.info("Ride created successfully with ID: {}", response.getRideId());
         return ResponseEntity.ok(response);
     }
 
@@ -34,14 +39,18 @@ public class RideController {
     public ResponseEntity<Void> updateRide(@PathVariable Long rideId,
             @RequestParam Long driverId,
             @RequestParam RideUpdateType updateType) {
+        log.info("Received update request for ride ID: {}, driver ID: {}, type: {}", rideId, driverId, updateType);
         rideService.updateRide(rideId, driverId, updateType);
+        log.info("Ride {} updated successfully", rideId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{rideId}/payment")
     public ResponseEntity<Void> processPayment(@PathVariable Long rideId,
             @RequestBody PaymentRequestDto paymentRequest) {
+        log.info("Received payment request for ride ID: {}, amount: {}", rideId, paymentRequest.getAmount());
         rideService.processPayment(rideId, paymentRequest.getAmount(), paymentRequest.getPaymentMethod());
+        log.info("Payment processed successfully for ride ID: {}", rideId);
         return ResponseEntity.ok().build();
     }
 }

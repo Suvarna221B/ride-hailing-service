@@ -12,12 +12,14 @@ import com.example.ridehailing.repository.RideRepository;
 import com.example.ridehailing.service.strategy.RideUpdateStrategyFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class RideService {
 
         private final RideRepository rideRepository;
@@ -46,10 +48,12 @@ public class RideService {
 
         @Transactional
         public RideResponseDto createRide(RideRequestDto request) {
+                log.info("Creating ride for user ID: {}", request.getUserId());
                 User user = userService.getUserEntityById(request.getUserId());
                 FareResponseDto fareResponse = calculateFare(request);
 
                 Ride ride = createRideEntity(request, user, fareResponse);
+                log.info("Ride created with ID: {}", ride.getId());
 
                 List<Long> nearbyDriverIds = driverService.findNearbyDrivers(
                                 request.getStartLatitude(),
@@ -57,10 +61,13 @@ public class RideService {
                                 5.0);
 
                 if (!nearbyDriverIds.isEmpty()) {
+                        log.info("Found {} nearby drivers for ride ID: {}", nearbyDriverIds.size(), ride.getId());
                         rideRequestPublisher.publishRideRequest(
                                         UUID.randomUUID().toString(),
                                         ride.getId(),
                                         nearbyDriverIds);
+                } else {
+                        log.warn("No nearby drivers found for ride ID: {}", ride.getId());
                 }
 
                 return RideResponseDto.builder()
@@ -72,17 +79,26 @@ public class RideService {
 
         @Transactional
         public void updateRide(Long rideId, Long driverId, RideUpdateType updateType) {
+                log.info("Updating ride ID: {} with type: {}", rideId, updateType);
                 Ride ride = rideRepository.findById(rideId)
-                                .orElseThrow(() -> new ValidationException("Ride not found"));
+                                .orElseThrow(() -> {
+                                        log.error("Ride not found with ID: {}", rideId);
+                                        return new ValidationException("Ride not found");
+                                });
 
                 rideUpdateStrategyFactory.getStrategy(updateType).updateRide(ride, driverId);
                 rideRepository.save(ride);
+                log.info("Ride ID: {} updated successfully", rideId);
         }
 
         @Transactional
         public void completeRideWithPayment(Long rideId, Long paymentId) {
+                log.info("Completing ride ID: {} with payment ID: {}", rideId, paymentId);
                 Ride ride = rideRepository.findById(rideId)
-                                .orElseThrow(() -> new ValidationException("Ride not found"));
+                                .orElseThrow(() -> {
+                                        log.error("Ride not found with ID: {}", rideId);
+                                        return new ValidationException("Ride not found");
+                                });
 
                 ride.setPaymentId(paymentId.toString());
 
@@ -92,20 +108,28 @@ public class RideService {
         @Transactional
         public void processPayment(Long rideId, BigDecimal paymentAmount,
                         com.example.ridehailing.model.PaymentMethod paymentMethod) {
+                log.info("Processing payment for ride ID: {}, amount: {}", rideId, paymentAmount);
                 Ride ride = rideRepository.findById(rideId)
-                                .orElseThrow(() -> new ValidationException("Ride not found"));
+                                .orElseThrow(() -> {
+                                        log.error("Ride not found with ID: {}", rideId);
+                                        return new ValidationException("Ride not found");
+                                });
 
                 if (ride.getStatus() != RideStatus.PAYMENT_PENDING) {
+                        log.error("Ride ID: {} is not in PAYMENT_PENDING state", rideId);
                         throw new ValidationException("Ride must be in PAYMENT_PENDING state for payment");
                 }
 
                 if (ride.getFare().compareTo(paymentAmount) != 0) {
+                        log.error("Payment amount mismatch for ride ID: {}. Expected: {}, Received: {}", rideId,
+                                        ride.getFare(), paymentAmount);
                         throw new ValidationException("Payment amount does not match ride fare. Expected: "
                                         + ride.getFare() + ", Received: " + paymentAmount);
                 }
 
                 paymentRequestPublisher.publishPaymentRequest(ride.getId(), ride.getUserId(), paymentAmount,
                                 paymentMethod);
+                log.info("Payment request published for ride ID: {}", rideId);
         }
 
         private Ride createRideEntity(RideRequestDto request, User user, FareResponseDto fareResponse) {

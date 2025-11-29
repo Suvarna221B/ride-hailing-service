@@ -14,9 +14,12 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
+import lombok.extern.slf4j.Slf4j;
+
 import static com.example.ridehailing.model.RideUpdateType.*;
 
 @Component
+@Slf4j
 public class PaymentPendingRideStrategy implements RideUpdateStrategy {
 
     private final RideUpdatePublisher rideUpdatePublisher;
@@ -38,21 +41,26 @@ public class PaymentPendingRideStrategy implements RideUpdateStrategy {
 
     @Override
     public void updateRide(Ride ride, Long driverId) {
+        log.info("Marking ride {} as PAYMENT_PENDING by driver {}", ride.getId(), driverId);
         if (ride.getStatus() != RideStatus.IN_PROGRESS) {
+            log.error("Ride {} is not in IN_PROGRESS state. Current status: {}", ride.getId(), ride.getStatus());
             throw new ValidationException("Ride must be in IN_PROGRESS state to mark as payment pending");
         }
 
         if (!ride.getDriverId().equals(driverId)) {
+            log.error("Driver {} is not assigned to ride {}", driverId, ride.getId());
             throw new ValidationException("Only the assigned driver can complete the ride");
         }
 
         if (ride.getRideStartTime() == null) {
+            log.error("Ride {} start time is null", ride.getId());
             throw new ValidationException("Ride start time is not set");
         }
 
         LocalDateTime currentTime = LocalDateTime.now();
         Duration rideDuration = Duration.between(ride.getRideStartTime(), currentTime);
         long actualTimeMinutes = rideDuration.toMinutes();
+        log.info("Ride {} duration: {} minutes", ride.getId(), actualTimeMinutes);
 
         FareRequestDto fareRequest = FareRequestDto.builder()
                 .startLatitude(ride.getStartLatitude())
@@ -67,6 +75,7 @@ public class PaymentPendingRideStrategy implements RideUpdateStrategy {
         // Update fare if it has changed
         BigDecimal newFare = fareResponse.getTotalFare();
         if (newFare.compareTo(ride.getFare()) != 0) {
+            log.info("Updating fare for ride {} from {} to {}", ride.getId(), ride.getFare(), newFare);
             ride.setFare(newFare);
         }
 
@@ -80,5 +89,6 @@ public class PaymentPendingRideStrategy implements RideUpdateStrategy {
                 ride.getUserId(),
                 RideStatus.PAYMENT_PENDING,
                 ride.getFare());
+        log.info("Ride {} marked as PAYMENT_PENDING. Fare: {}", ride.getId(), ride.getFare());
     }
 }
