@@ -55,7 +55,7 @@ public class AcceptRideStrategyTest {
 
         assertEquals(RideStatus.ASSIGNED, ride.getStatus());
         assertEquals(driverId, ride.getDriverId());
-        verify(driverService).updateDriverStatus(driverId, "busy");
+        verify(driverService).updateDriverStatusUsingDriverId(driverId, "busy");
         verify(rideUpdatePublisher).publishRideUpdate(rideId, userId, RideStatus.ASSIGNED);
     }
 
@@ -71,7 +71,7 @@ public class AcceptRideStrategyTest {
             acceptRideStrategy.updateRide(ride, 20L);
         });
 
-        verify(driverService, never()).updateDriverStatus(any(), any());
+        verify(driverService, never()).updateDriverStatusUsingDriverId(any(), any());
         verify(rideUpdatePublisher, never()).publishRideUpdate(any(), any(), any());
     }
 
@@ -88,7 +88,7 @@ public class AcceptRideStrategyTest {
             acceptRideStrategy.updateRide(ride, 20L);
         });
 
-        verify(driverService, never()).updateDriverStatus(any(), any());
+        verify(driverService, never()).updateDriverStatusUsingDriverId(any(), any());
         verify(rideUpdatePublisher, never()).publishRideUpdate(any(), any(), any());
     }
 }

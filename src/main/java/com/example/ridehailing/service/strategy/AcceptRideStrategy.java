@@ -38,7 +38,7 @@ public class AcceptRideStrategy implements RideUpdateStrategy {
         ride.setDriverId(driverId);
         ride.setStatus(RideStatus.ASSIGNED);
 
-        driverService.updateDriverStatus(driverId, "busy");
+        driverService.updateDriverStatusUsingDriverId(driverId, "busy");
 
         rideUpdatePublisher.publishRideUpdate(ride.getId(), ride.getUserId(), RideStatus.ASSIGNED);
     }

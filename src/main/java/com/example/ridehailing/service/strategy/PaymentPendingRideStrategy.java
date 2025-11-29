@@ -72,7 +72,7 @@ public class PaymentPendingRideStrategy implements RideUpdateStrategy {
 
         ride.setStatus(RideStatus.PAYMENT_PENDING);
 
-        driverService.updateDriverStatus(driverId, "available");
+        driverService.updateDriverStatusUsingDriverId(driverId, "available");
 
         // Publish update with fare information
         rideUpdatePublisher.publishRideUpdate(

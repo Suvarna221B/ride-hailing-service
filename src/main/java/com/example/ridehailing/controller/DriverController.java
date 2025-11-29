@@ -42,7 +42,7 @@ public class DriverController {
     public ResponseEntity<Void> updateDriverStatus(
             @PathVariable Long userId,
             @RequestBody String status) {
-        driverService.updateDriverStatus(userId, status);
+        driverService.updateDriverStatusUsingUserId(userId, status);
         return ResponseEntity.ok().build();
     }
 }

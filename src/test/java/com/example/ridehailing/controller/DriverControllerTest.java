@@ -94,6 +94,6 @@ public class DriverControllerTest {
                                 .content("\"AVAILABLE\""))
                                 .andExpect(status().isOk());
 
-                verify(driverService).updateDriverStatus(eq(1L), eq("\"AVAILABLE\""));
+                verify(driverService).updateDriverStatusUsingUserId(eq(1L), eq("\"AVAILABLE\""));
         }
 }

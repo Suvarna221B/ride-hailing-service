@@ -146,7 +146,7 @@ public class DriverServiceTest {
 
         when(driverRepository.findByUserId(userId)).thenReturn(Optional.of(driver));
 
-        driverService.updateDriverStatus(userId, "available");
+        driverService.updateDriverStatusUsingUserId(userId, "available");
 
         verify(driverRepository).save(any(Driver.class));
         verify(driverUpdatePublisher).publishDriverUpdate(any());
@@ -164,7 +164,7 @@ public class DriverServiceTest {
         when(driverRepository.findByUserId(userId)).thenReturn(Optional.of(driver));
         when(redisTemplate.opsForGeo()).thenReturn(geoOperations);
 
-        driverService.updateDriverStatus(userId, "busy");
+        driverService.updateDriverStatusUsingUserId(userId, "busy");
 
         verify(geoOperations).remove("drivers", "10");
         verify(driverRepository).save(any(Driver.class));
@@ -183,7 +183,7 @@ public class DriverServiceTest {
         when(driverRepository.findByUserId(userId)).thenReturn(Optional.of(driver));
         when(redisTemplate.opsForGeo()).thenReturn(geoOperations);
 
-        driverService.updateDriverStatus(userId, "offline");
+        driverService.updateDriverStatusUsingUserId(userId, "offline");
 
         verify(geoOperations).remove("drivers", "10");
         verify(driverRepository).save(any(Driver.class));

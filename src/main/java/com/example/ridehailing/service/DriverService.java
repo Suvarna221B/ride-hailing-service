@@ -82,9 +82,18 @@ public class DriverService {
         driverRepository.save(driver);
     }
 
-    public void updateDriverStatus(Long userId, String statusUpdate) {
+    public void updateDriverStatusUsingDriverId(Long driverId, String status){
+        Driver driver = driverRepository.findById(driverId)
+                .orElseThrow(() -> new ValidationException("Driver not found for user"));
+        updateDriverStatus(status, driver);
+    }
+    public void updateDriverStatusUsingUserId(Long userId, String statusUpdate) {
         Driver driver = driverRepository.findByUserId(userId)
                 .orElseThrow(() -> new ValidationException("Driver not found for user"));
+        updateDriverStatus(statusUpdate, driver);
+    }
+
+    private void updateDriverStatus(String statusUpdate, Driver driver) {
         DriverStatus driverStatus = DriverStatus.fromString(statusUpdate);
 
         switch (driverStatus) {

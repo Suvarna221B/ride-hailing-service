@@ -80,7 +80,7 @@ public class PaymentPendingRideStrategyTest {
 
         assertEquals(RideStatus.PAYMENT_PENDING, ride.getStatus());
         assertEquals(newFare, ride.getFare());
-        verify(driverService).updateDriverStatus(driverId, "available");
+        verify(driverService).updateDriverStatusUsingDriverId(driverId, "available");
         verify(rideUpdatePublisher).publishRideUpdate(rideId, userId, RideStatus.PAYMENT_PENDING, newFare);
     }
 
@@ -114,7 +114,7 @@ public class PaymentPendingRideStrategyTest {
 
         assertEquals(RideStatus.PAYMENT_PENDING, ride.getStatus());
         assertEquals(fare, ride.getFare());
-        verify(driverService).updateDriverStatus(driverId, "available");
+        verify(driverService).updateDriverStatusUsingDriverId(driverId, "available");
         verify(rideUpdatePublisher).publishRideUpdate(rideId, userId, RideStatus.PAYMENT_PENDING, fare);
     }
 
