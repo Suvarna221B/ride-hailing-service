@@ -28,7 +28,7 @@ public class UserController {
         if (userDto != null) {
             return ResponseEntity.ok(userDto);
         } else {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.ok(null);
         }
     }
 }

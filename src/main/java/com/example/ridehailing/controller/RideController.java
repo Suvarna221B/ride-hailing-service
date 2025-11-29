@@ -1,9 +1,11 @@
 package com.example.ridehailing.controller;
 
+import com.example.ridehailing.annotation.RequiredRole;
 import com.example.ridehailing.dto.PaymentRequestDto;
 import com.example.ridehailing.dto.RideRequestDto;
 import com.example.ridehailing.dto.RideResponseDto;
 import com.example.ridehailing.model.RideUpdateType;
+import com.example.ridehailing.model.UserType;
 import com.example.ridehailing.service.RideService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,6 +38,7 @@ public class RideController {
     }
 
     @PostMapping("/{rideId}/update")
+    @RequiredRole(UserType.DRIVER)
     public ResponseEntity<Void> updateRide(@PathVariable Long rideId,
             @RequestParam Long driverId,
             @RequestParam RideUpdateType updateType) {
@@ -46,6 +49,7 @@ public class RideController {
     }
 
     @PostMapping("/{rideId}/payment")
+    @RequiredRole(UserType.RIDER)
     public ResponseEntity<Void> processPayment(@PathVariable Long rideId,
             @RequestBody PaymentRequestDto paymentRequest) {
         log.info("Received payment request for ride ID: {}, amount: {}", rideId, paymentRequest.getAmount());

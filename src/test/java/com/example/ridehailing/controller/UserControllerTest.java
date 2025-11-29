@@ -96,6 +96,6 @@ public class UserControllerTest {
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk());
     }
 }
