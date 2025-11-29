@@ -51,6 +51,10 @@ public class DriverService {
                 });
         Point point = new Point(locationDto.getLongitude(), locationDto.getLatitude());
         redisTemplate.opsForGeo().add("drivers:geo", point, driver.getId());
+
+        // Set TTL on the geo key to automatically expire stale location data
+        redisTemplate.expire("drivers:geo", ttlSeconds, TimeUnit.SECONDS);
+        log.info("Updated location for driver {} with TTL of {} seconds", driver.getId(), ttlSeconds);
     }
 
     public List<Long> findNearbyDrivers(double latitude, double longitude, double radiusKm) {
