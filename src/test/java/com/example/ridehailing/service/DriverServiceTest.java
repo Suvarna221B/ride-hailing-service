@@ -46,6 +46,9 @@ public class DriverServiceTest {
     @Mock
     private GeoOperations<String, Object> geoOperations;
 
+    @Mock
+    private com.example.ridehailing.kafka.publisher.DriverUpdatePublisher driverUpdatePublisher;
+
     @Test
     public void testUpdateLocation_Success() {
         Long userId = 1L;
@@ -80,10 +83,12 @@ public class DriverServiceTest {
         driver.setStatus(DriverStatus.OFFLINE); // Driver is OFFLINE
 
         when(driverRepository.findByUserId(driverId)).thenReturn(Optional.of(driver));
+        when(redisTemplate.opsForGeo()).thenReturn(geoOperations);
 
         driverService.updateLocation(driverId, locationDto);
 
-        verify(redisTemplate, never()).opsForGeo();
+        // Verify geo operations are called even for OFFLINE drivers
+        verify(geoOperations).add(eq("drivers:geo"), any(Point.class), eq(driverId));
     }
 
     @Test
@@ -144,5 +149,44 @@ public class DriverServiceTest {
         driverService.updateDriverStatus(userId, "available");
 
         verify(driverRepository).save(any(Driver.class));
+        verify(driverUpdatePublisher).publishDriverUpdate(any());
+    }
+
+    @Test
+    public void testUpdateDriverStatus_ToBusy_RemovesFromRedis() {
+        Long userId = 1L;
+        Driver driver = Driver.builder()
+                .id(10L)
+                .name("driver1")
+                .status(DriverStatus.AVAILABLE)
+                .build();
+
+        when(driverRepository.findByUserId(userId)).thenReturn(Optional.of(driver));
+        when(redisTemplate.opsForGeo()).thenReturn(geoOperations);
+
+        driverService.updateDriverStatus(userId, "busy");
+
+        verify(geoOperations).remove("drivers", "10");
+        verify(driverRepository).save(any(Driver.class));
+        verify(driverUpdatePublisher).publishDriverUpdate(any());
+    }
+
+    @Test
+    public void testUpdateDriverStatus_ToOffline_RemovesFromRedis() {
+        Long userId = 1L;
+        Driver driver = Driver.builder()
+                .id(10L)
+                .name("driver1")
+                .status(DriverStatus.AVAILABLE)
+                .build();
+
+        when(driverRepository.findByUserId(userId)).thenReturn(Optional.of(driver));
+        when(redisTemplate.opsForGeo()).thenReturn(geoOperations);
+
+        driverService.updateDriverStatus(userId, "offline");
+
+        verify(geoOperations).remove("drivers", "10");
+        verify(driverRepository).save(any(Driver.class));
+        verify(driverUpdatePublisher).publishDriverUpdate(any());
     }
 }

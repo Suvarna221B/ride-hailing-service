@@ -7,7 +7,6 @@ import com.example.ridehailing.model.UserType;
 import com.example.ridehailing.service.AuthService;
 import com.example.ridehailing.service.DriverService;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

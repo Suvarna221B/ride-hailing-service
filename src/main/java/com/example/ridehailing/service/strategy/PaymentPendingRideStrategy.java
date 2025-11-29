@@ -6,6 +6,7 @@ import com.example.ridehailing.exception.ValidationException;
 import com.example.ridehailing.kafka.publisher.RideUpdatePublisher;
 import com.example.ridehailing.model.Ride;
 import com.example.ridehailing.model.RideStatus;
+import com.example.ridehailing.service.DriverService;
 import com.example.ridehailing.service.FareCalculationService;
 import org.springframework.stereotype.Component;
 
@@ -20,11 +21,14 @@ public class PaymentPendingRideStrategy implements RideUpdateStrategy {
 
     private final RideUpdatePublisher rideUpdatePublisher;
     private final FareCalculationService fareCalculationService;
+    private final DriverService driverService;
 
     public PaymentPendingRideStrategy(RideUpdatePublisher rideUpdatePublisher,
-            FareCalculationService fareCalculationService) {
+            FareCalculationService fareCalculationService,
+            DriverService driverService) {
         this.rideUpdatePublisher = rideUpdatePublisher;
         this.fareCalculationService = fareCalculationService;
+        this.driverService = driverService;
     }
 
     @Override
@@ -67,6 +71,8 @@ public class PaymentPendingRideStrategy implements RideUpdateStrategy {
         }
 
         ride.setStatus(RideStatus.PAYMENT_PENDING);
+
+        driverService.updateDriverStatus(driverId, "available");
 
         // Publish update with fare information
         rideUpdatePublisher.publishRideUpdate(

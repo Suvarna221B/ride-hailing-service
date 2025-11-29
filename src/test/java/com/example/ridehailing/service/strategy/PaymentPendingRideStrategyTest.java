@@ -8,6 +8,7 @@ import com.example.ridehailing.model.Ride;
 import com.example.ridehailing.model.RideStatus;
 import com.example.ridehailing.model.RideUpdateType;
 import com.example.ridehailing.service.FareCalculationService;
+import com.example.ridehailing.service.DriverService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,6 +33,9 @@ public class PaymentPendingRideStrategyTest {
 
     @Mock
     private FareCalculationService fareCalculationService;
+
+    @Mock
+    private DriverService driverService;
 
     @Test
     public void testIsApplicable_PaymentPending() {
@@ -76,6 +80,7 @@ public class PaymentPendingRideStrategyTest {
 
         assertEquals(RideStatus.PAYMENT_PENDING, ride.getStatus());
         assertEquals(newFare, ride.getFare());
+        verify(driverService).updateDriverStatus(driverId, "available");
         verify(rideUpdatePublisher).publishRideUpdate(rideId, userId, RideStatus.PAYMENT_PENDING, newFare);
     }
 
@@ -109,6 +114,7 @@ public class PaymentPendingRideStrategyTest {
 
         assertEquals(RideStatus.PAYMENT_PENDING, ride.getStatus());
         assertEquals(fare, ride.getFare());
+        verify(driverService).updateDriverStatus(driverId, "available");
         verify(rideUpdatePublisher).publishRideUpdate(rideId, userId, RideStatus.PAYMENT_PENDING, fare);
     }
 

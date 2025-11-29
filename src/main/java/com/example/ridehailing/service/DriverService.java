@@ -1,7 +1,9 @@
 package com.example.ridehailing.service;
 
 import com.example.ridehailing.dto.DriverLocationDto;
+import com.example.ridehailing.dto.DriverUpdateMessage;
 import com.example.ridehailing.exception.ValidationException;
+import com.example.ridehailing.kafka.publisher.DriverUpdatePublisher;
 import com.example.ridehailing.model.Driver;
 import com.example.ridehailing.model.DriverStatus;
 import com.example.ridehailing.model.User;
@@ -22,26 +24,26 @@ public class DriverService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final DriverRepository driverRepository;
     private final UserService userService;
+    private final DriverUpdatePublisher driverUpdatePublisher;
 
     @Value("${redis.ttl.seconds}")
     private long ttlSeconds;
 
     public DriverService(RedisTemplate<String, Object> redisTemplate,
             DriverRepository driverRepository,
-            UserService userService) {
+            UserService userService,
+            DriverUpdatePublisher driverUpdatePublisher) {
         this.redisTemplate = redisTemplate;
         this.driverRepository = driverRepository;
         this.userService = userService;
+        this.driverUpdatePublisher = driverUpdatePublisher;
     }
 
     public void updateLocation(Long userId, DriverLocationDto locationDto) {
         Driver driver = driverRepository.findByUserId(userId)
                 .orElseThrow(() -> new ValidationException("Driver not found"));
-
-        if (driver.getStatus() ==DriverStatus.AVAILABLE) {
             Point point = new Point(locationDto.getLongitude(), locationDto.getLatitude());
             redisTemplate.opsForGeo().add("drivers:geo", point, driver.getId());
-        }
     }
 
     public List<Long> findNearbyDrivers(double latitude, double longitude, double radiusKm) {
@@ -56,7 +58,7 @@ public class DriverService {
         if (results != null) {
             for (GeoResult<RedisGeoCommands.GeoLocation<Object>> result : results) {
                 Object content = result.getContent().getName();
-                 if (content instanceof Long) {
+                if (content instanceof Long) {
                     driverIds.add((Long) content);
                 }
             }
@@ -80,12 +82,30 @@ public class DriverService {
         driverRepository.save(driver);
     }
 
-    public void updateDriverStatus(Long userId, String status) {
+    public void updateDriverStatus(Long userId, String statusUpdate) {
         Driver driver = driverRepository.findByUserId(userId)
                 .orElseThrow(() -> new ValidationException("Driver not found for user"));
+        DriverStatus driverStatus = DriverStatus.fromString(statusUpdate);
 
-        DriverStatus driverStatus = DriverStatus.fromString(status);
+        switch (driverStatus) {
+            case AVAILABLE -> {
+
+            }
+            case OFFLINE, BUSY -> {
+                redisTemplate.opsForGeo().remove("drivers", driver.getId().toString());
+            }
+            default -> {
+                // No Redis modification for other statuses
+            }
+        }
+
         driver.setStatus(driverStatus);
         driverRepository.save(driver);
+
+        driverUpdatePublisher.publishDriverUpdate(
+                DriverUpdateMessage.builder()
+                        .driverId(driver.getId())
+                        .status(driverStatus)
+                        .build());
     }
 }

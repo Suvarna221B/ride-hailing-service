@@ -55,7 +55,7 @@ public class AcceptRideStrategyTest {
 
         assertEquals(RideStatus.ASSIGNED, ride.getStatus());
         assertEquals(driverId, ride.getDriverId());
-        verify(driverService).updateDriverStatus(driverId, "BUSY");
+        verify(driverService).updateDriverStatus(driverId, "busy");
         verify(rideUpdatePublisher).publishRideUpdate(rideId, userId, RideStatus.ASSIGNED);
     }
 

@@ -35,10 +35,10 @@ public class AcceptRideStrategy implements RideUpdateStrategy {
             throw new ValidationException("Ride is already assigned");
         }
 
-        ride.setStatus(RideStatus.ASSIGNED);
         ride.setDriverId(driverId);
+        ride.setStatus(RideStatus.ASSIGNED);
 
-        driverService.updateDriverStatus(driverId, "BUSY");
+        driverService.updateDriverStatus(driverId, "busy");
 
         rideUpdatePublisher.publishRideUpdate(ride.getId(), ride.getUserId(), RideStatus.ASSIGNED);
     }
