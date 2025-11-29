@@ -1,7 +1,9 @@
 package com.example.ridehailing.service;
 
 import com.example.ridehailing.dto.*;
+import com.example.ridehailing.exception.ValidationException;
 import com.example.ridehailing.kafka.publisher.RideRequestPublisher;
+import com.example.ridehailing.kafka.publisher.RideUpdatePublisher;
 import com.example.ridehailing.model.Ride;
 import com.example.ridehailing.model.RideStatus;
 import com.example.ridehailing.model.User;
@@ -20,60 +22,87 @@ public class RideService {
         private final FareCalculationService fareCalculationService;
         private final UserService userService;
         private final RideRequestPublisher rideRequestPublisher;
+        private final RideUpdatePublisher rideUpdatePublisher;
 
         public RideService(RideRepository rideRepository,
                         DriverService driverService,
                         FareCalculationService fareCalculationService,
                         UserService userService,
-                        RideRequestPublisher rideRequestPublisher) {
+                        RideRequestPublisher rideRequestPublisher,
+                        RideUpdatePublisher rideUpdatePublisher) {
                 this.rideRepository = rideRepository;
                 this.driverService = driverService;
                 this.fareCalculationService = fareCalculationService;
                 this.userService = userService;
                 this.rideRequestPublisher = rideRequestPublisher;
+                this.rideUpdatePublisher = rideUpdatePublisher;
         }
 
         @Transactional
         public RideResponseDto createRide(RideRequestDto request) {
-            User user = userService.getUserEntityById(request.getUserId());
-            FareResponseDto fareResponse = calculateFare(request);
+                User user = userService.getUserEntityById(request.getUserId());
+                FareResponseDto fareResponse = calculateFare(request);
 
-            Ride ride = createRideEntity(request, user, fareResponse);
+                Ride ride = createRideEntity(request, user, fareResponse);
 
-            List<Long> nearbyDriverIds = driverService.findNearbyDrivers(
+                List<Long> nearbyDriverIds = driverService.findNearbyDrivers(
                                 request.getStartLatitude(),
                                 request.getStartLongitude(),
                                 5.0);
 
-            if (!nearbyDriverIds.isEmpty()) {
-                    rideRequestPublisher.publishRideRequest(
-                                    UUID.randomUUID().toString(),
-                                    ride.getId(),
-                                    nearbyDriverIds);
-            }
+                if (!nearbyDriverIds.isEmpty()) {
+                        rideRequestPublisher.publishRideRequest(
+                                        UUID.randomUUID().toString(),
+                                        ride.getId(),
+                                        nearbyDriverIds);
+                }
 
-            return RideResponseDto.builder()
-                            .rideId(ride.getId())
-                            .status(ride.getStatus())
-                            .fare(ride.getFare())
-                            .build();
+                return RideResponseDto.builder()
+                                .rideId(ride.getId())
+                                .status(ride.getStatus())
+                                .fare(ride.getFare())
+                                .build();
         }
 
-    private Ride createRideEntity(RideRequestDto request, User user, FareResponseDto fareResponse) {
-        Ride ride = Ride.builder()
-                        .userId(user.getId())
-                        .startLatitude(request.getStartLatitude())
-                        .startLongitude(request.getStartLongitude())
-                        .destLatitude(request.getDestLatitude())
-                        .destLongitude(request.getDestLongitude())
-                        .fare(fareResponse.getTotalFare())
-                        .status(RideStatus.REQUESTED)
-                        .build();
-        ride = rideRepository.save(ride);
-        return ride;
-    }
+        @Transactional
+        public void acceptRide(Long rideId, Long driverId) {
+                Ride ride = rideRepository.findById(rideId)
+                                .orElseThrow(() -> new ValidationException(
+                                                "Ride not found"));
 
-    private FareResponseDto calculateFare(RideRequestDto request) {
+                if (ride.getStatus() != RideStatus.REQUESTED) {
+                        throw new ValidationException(
+                                        "Ride is not in REQUESTED state");
+                }
+
+                if (ride.getDriverId() != null) {
+                        throw new ValidationException("Ride is already assigned");
+                }
+
+                ride.setStatus(RideStatus.IN_PROGRESS);
+                ride.setDriverId(driverId);
+                rideRepository.save(ride);
+
+                driverService.updateDriverStatus(driverId, "BUSY");
+
+                rideUpdatePublisher.publishRideUpdate(ride.getId(), ride.getUserId(), RideStatus.IN_PROGRESS);
+        }
+
+        private Ride createRideEntity(RideRequestDto request, User user, FareResponseDto fareResponse) {
+                Ride ride = Ride.builder()
+                                .userId(user.getId())
+                                .startLatitude(request.getStartLatitude())
+                                .startLongitude(request.getStartLongitude())
+                                .destLatitude(request.getDestLatitude())
+                                .destLongitude(request.getDestLongitude())
+                                .fare(fareResponse.getTotalFare())
+                                .status(RideStatus.REQUESTED)
+                                .build();
+                ride = rideRepository.save(ride);
+                return ride;
+        }
+
+        private FareResponseDto calculateFare(RideRequestDto request) {
                 FareRequestDto fareRequest = FareRequestDto.builder()
                                 .startLatitude(request.getStartLatitude())
                                 .startLongitude(request.getStartLongitude())

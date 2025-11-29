@@ -43,4 +43,6 @@ public class Ride {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RideStatus status;
+
+    private String paymentId;
 }

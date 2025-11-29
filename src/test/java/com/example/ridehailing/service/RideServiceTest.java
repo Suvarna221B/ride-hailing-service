@@ -2,6 +2,7 @@ package com.example.ridehailing.service;
 
 import com.example.ridehailing.dto.*;
 import com.example.ridehailing.kafka.publisher.RideRequestPublisher;
+import com.example.ridehailing.kafka.publisher.RideUpdatePublisher;
 import com.example.ridehailing.model.Ride;
 import com.example.ridehailing.model.RideStatus;
 import com.example.ridehailing.model.User;
@@ -40,6 +41,9 @@ public class RideServiceTest {
 
         @Mock
         private RideRequestPublisher rideRequestPublisher;
+
+        @Mock
+        private RideUpdatePublisher rideUpdatePublisher;
 
         @Test
         public void testCreateRide_Success() {
@@ -80,5 +84,27 @@ public class RideServiceTest {
                 assertEquals(BigDecimal.valueOf(150.0), response.getFare());
 
                 verify(rideRequestPublisher, times(1)).publishRideRequest(anyString(), eq(100L), eq(driverIds));
+        }
+
+        @Test
+        public void testAcceptRide_Success() {
+                Long rideId = 1L;
+                Long driverId = 20L;
+
+                Ride ride = Ride.builder()
+                                .id(rideId)
+                                .userId(10L)
+                                .status(RideStatus.REQUESTED)
+                                .build();
+
+                when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.of(ride));
+
+                rideService.acceptRide(rideId, driverId);
+
+                assertEquals(RideStatus.IN_PROGRESS, ride.getStatus());
+                assertEquals(driverId, ride.getDriverId());
+                verify(rideRepository).save(ride);
+                verify(driverService).updateDriverStatus(driverId, "BUSY");
+                verify(rideUpdatePublisher).publishRideUpdate(ride.getId(), ride.getUserId(), RideStatus.IN_PROGRESS);
         }
 }

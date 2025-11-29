@@ -2,5 +2,7 @@ package com.example.ridehailing.model;
 
 public enum RideStatus {
     REQUESTED,
-    ASSIGNED
+    IN_PROGRESS,
+    COMPLETED,
+    CANCELLED
 }

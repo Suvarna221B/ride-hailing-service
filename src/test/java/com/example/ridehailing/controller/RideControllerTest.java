@@ -66,4 +66,15 @@ public class RideControllerTest {
                 .andExpect(jsonPath("$.status").value("REQUESTED"))
                 .andExpect(jsonPath("$.fare").value(150.0));
     }
+
+    @Test
+    public void testAcceptRide_Success() throws Exception {
+        Long rideId = 1L;
+        Long driverId = 20L;
+
+        mockMvc.perform(post("/api/rides/" + rideId + "/accept")
+                .param("driverId", String.valueOf(driverId))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+    }
 }

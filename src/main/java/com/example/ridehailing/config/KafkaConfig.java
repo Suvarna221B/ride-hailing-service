@@ -15,4 +15,12 @@ public class KafkaConfig {
                 .replicas(1)
                 .build();
     }
+
+    @Bean
+    public NewTopic rideUpdatesTopic() {
+        return TopicBuilder.name("rideUpdates")
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
 }
