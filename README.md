@@ -1,6 +1,6 @@
 # 🚗 Ride Hailing Platform - Backend
 
-A production-ready ride-hailing platform backend built with Spring Boot, featuring real-time ride matching, driver allocation, payment processing, and comprehensive monitoring with New Relic APM.
+A ride-hailing platform backend built with Spring Boot, featuring real-time ride matching, driver allocation, payment processing, and comprehensive monitoring with New Relic APM.
 
 ## 📋 Table of Contents
 
