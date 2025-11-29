@@ -8,6 +8,7 @@ import com.example.ridehailing.model.RideUpdateType;
 import com.example.ridehailing.model.UserType;
 import com.example.ridehailing.service.RideService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -46,6 +47,14 @@ public class RideController {
         rideService.updateRide(rideId, driverId, updateType);
         log.info("Ride {} updated successfully", rideId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{rideId}")
+    public ResponseEntity<RideResponseDto> getRide(@PathVariable Long rideId) {
+        log.info("Fetching ride with ID: {}", rideId);
+        RideResponseDto ride = rideService.getRideById(rideId);
+        log.info("Ride {} fetched successfully", rideId);
+        return ResponseEntity.ok(ride);
     }
 
     @PostMapping("/{rideId}/payment")

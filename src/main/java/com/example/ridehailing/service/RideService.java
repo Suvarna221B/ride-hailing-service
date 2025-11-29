@@ -132,6 +132,27 @@ public class RideService {
                 log.info("Payment request published for ride ID: {}", rideId);
         }
 
+        public RideResponseDto getRideById(Long rideId) {
+                log.info("Fetching ride with ID: {}", rideId);
+                Ride ride = rideRepository.findById(rideId)
+                                .orElseThrow(() -> {
+                                        log.error("Ride not found with ID: {}", rideId);
+                                        return new ValidationException("Ride not found");
+                                });
+
+                return RideResponseDto.builder()
+                                .rideId(ride.getId())
+                                .status(ride.getStatus())
+                                .fare(ride.getFare())
+                                .pickupLocation(new LocationDto(ride.getStartLatitude(),
+                                                ride.getStartLongitude()))
+                                .dropoffLocation(new LocationDto(ride.getDestLatitude(),
+                                                ride.getDestLongitude()))
+                                .driverId(ride.getDriverId())
+                                .riderId(ride.getUserId())
+                                .build();
+        }
+
         private Ride createRideEntity(RideRequestDto request, User user, FareResponseDto fareResponse) {
                 Ride ride = Ride.builder()
                                 .userId(user.getId())

@@ -16,4 +16,8 @@ public class RideResponseDto {
     private Long rideId;
     private RideStatus status;
     private BigDecimal fare;
+    private LocationDto pickupLocation;
+    private LocationDto dropoffLocation;
+    private Long driverId;
+    private Long riderId;
 }
