@@ -5,6 +5,7 @@ import com.example.ridehailing.kafka.publisher.RideRequestPublisher;
 import com.example.ridehailing.kafka.publisher.RideUpdatePublisher;
 import com.example.ridehailing.model.Ride;
 import com.example.ridehailing.model.RideStatus;
+import com.example.ridehailing.model.RideUpdateType;
 import com.example.ridehailing.model.User;
 import com.example.ridehailing.repository.RideRepository;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,12 @@ public class RideServiceTest {
 
         @Mock
         private RideUpdatePublisher rideUpdatePublisher;
+
+        @Mock
+        private com.example.ridehailing.service.strategy.RideUpdateStrategyFactory rideUpdateStrategyFactory;
+
+        @Mock
+        private com.example.ridehailing.service.strategy.RideUpdateStrategy rideUpdateStrategy;
 
         @Test
         public void testCreateRide_Success() {
@@ -87,7 +94,7 @@ public class RideServiceTest {
         }
 
         @Test
-        public void testAcceptRide_Success() {
+        public void testUpdateRide_Accept_Success() {
                 Long rideId = 1L;
                 Long driverId = 20L;
 
@@ -98,13 +105,12 @@ public class RideServiceTest {
                                 .build();
 
                 when(rideRepository.findById(rideId)).thenReturn(java.util.Optional.of(ride));
+                when(rideUpdateStrategyFactory.getStrategy(RideUpdateType.ACCEPT)).thenReturn(rideUpdateStrategy);
 
-                rideService.acceptRide(rideId, driverId);
+                rideService.updateRide(rideId, driverId, RideUpdateType.ACCEPT);
 
-                assertEquals(RideStatus.IN_PROGRESS, ride.getStatus());
-                assertEquals(driverId, ride.getDriverId());
+                verify(rideUpdateStrategyFactory).getStrategy(RideUpdateType.ACCEPT);
+                verify(rideUpdateStrategy).updateRide(ride, driverId);
                 verify(rideRepository).save(ride);
-                verify(driverService).updateDriverStatus(driverId, "BUSY");
-                verify(rideUpdatePublisher).publishRideUpdate(ride.getId(), ride.getUserId(), RideStatus.IN_PROGRESS);
         }
 }

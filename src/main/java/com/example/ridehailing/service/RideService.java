@@ -6,8 +6,10 @@ import com.example.ridehailing.kafka.publisher.RideRequestPublisher;
 import com.example.ridehailing.kafka.publisher.RideUpdatePublisher;
 import com.example.ridehailing.model.Ride;
 import com.example.ridehailing.model.RideStatus;
+import com.example.ridehailing.model.RideUpdateType;
 import com.example.ridehailing.model.User;
 import com.example.ridehailing.repository.RideRepository;
+import com.example.ridehailing.service.strategy.RideUpdateStrategyFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,19 +25,22 @@ public class RideService {
         private final UserService userService;
         private final RideRequestPublisher rideRequestPublisher;
         private final RideUpdatePublisher rideUpdatePublisher;
+        private final RideUpdateStrategyFactory rideUpdateStrategyFactory;
 
         public RideService(RideRepository rideRepository,
                         DriverService driverService,
                         FareCalculationService fareCalculationService,
                         UserService userService,
                         RideRequestPublisher rideRequestPublisher,
-                        RideUpdatePublisher rideUpdatePublisher) {
+                        RideUpdatePublisher rideUpdatePublisher,
+                        RideUpdateStrategyFactory rideUpdateStrategyFactory) {
                 this.rideRepository = rideRepository;
                 this.driverService = driverService;
                 this.fareCalculationService = fareCalculationService;
                 this.userService = userService;
                 this.rideRequestPublisher = rideRequestPublisher;
                 this.rideUpdatePublisher = rideUpdatePublisher;
+                this.rideUpdateStrategyFactory = rideUpdateStrategyFactory;
         }
 
         @Transactional
@@ -65,27 +70,12 @@ public class RideService {
         }
 
         @Transactional
-        public void acceptRide(Long rideId, Long driverId) {
+        public void updateRide(Long rideId, Long driverId, RideUpdateType updateType) {
                 Ride ride = rideRepository.findById(rideId)
-                                .orElseThrow(() -> new ValidationException(
-                                                "Ride not found"));
+                                .orElseThrow(() -> new ValidationException("Ride not found"));
 
-                if (ride.getStatus() != RideStatus.REQUESTED) {
-                        throw new ValidationException(
-                                        "Ride is not in REQUESTED state");
-                }
-
-                if (ride.getDriverId() != null) {
-                        throw new ValidationException("Ride is already assigned");
-                }
-
-                ride.setStatus(RideStatus.IN_PROGRESS);
-                ride.setDriverId(driverId);
+                rideUpdateStrategyFactory.getStrategy(updateType).updateRide(ride, driverId);
                 rideRepository.save(ride);
-
-                driverService.updateDriverStatus(driverId, "BUSY");
-
-                rideUpdatePublisher.publishRideUpdate(ride.getId(), ride.getUserId(), RideStatus.IN_PROGRESS);
         }
 
         private Ride createRideEntity(RideRequestDto request, User user, FareResponseDto fareResponse) {

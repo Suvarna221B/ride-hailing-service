@@ -3,6 +3,7 @@ package com.example.ridehailing.controller;
 import com.example.ridehailing.dto.RideRequestDto;
 import com.example.ridehailing.dto.RideResponseDto;
 import com.example.ridehailing.model.RideStatus;
+import com.example.ridehailing.model.RideUpdateType;
 import com.example.ridehailing.service.RideService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -68,12 +69,13 @@ public class RideControllerTest {
     }
 
     @Test
-    public void testAcceptRide_Success() throws Exception {
+    public void testUpdateRide_Accept_Success() throws Exception {
         Long rideId = 1L;
         Long driverId = 20L;
 
-        mockMvc.perform(post("/api/rides/" + rideId + "/accept")
+        mockMvc.perform(post("/api/rides/" + rideId + "/update")
                 .param("driverId", String.valueOf(driverId))
+                .param("updateType", "ACCEPT")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }

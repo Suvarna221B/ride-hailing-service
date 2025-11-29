@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "rides")
@@ -45,4 +46,6 @@ public class Ride {
     private RideStatus status;
 
     private String paymentId;
+
+    private LocalDateTime rideStartTime;
 }

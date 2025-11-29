@@ -1,9 +1,8 @@
 package com.example.ridehailing.model;
 
-public enum RideStatus {
-    REQUESTED,
+public enum RideUpdateType {
+    ACCEPT,
     ASSIGNED,
     IN_PROGRESS,
-    COMPLETED,
-    CANCELLED
+    COMPLETED
 }
