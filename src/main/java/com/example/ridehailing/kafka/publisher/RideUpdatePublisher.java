@@ -5,6 +5,8 @@ import com.example.ridehailing.model.RideStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 public class RideUpdatePublisher {
 
@@ -19,6 +21,16 @@ public class RideUpdatePublisher {
                 .rideId(rideId)
                 .userId(userId)
                 .status(status)
+                .build();
+        kafkaTemplate.send("rideUpdates", message);
+    }
+
+    public void publishRideUpdate(Long rideId, Long userId, RideStatus status, BigDecimal fare) {
+        RideUpdateMessage message = RideUpdateMessage.builder()
+                .rideId(rideId)
+                .userId(userId)
+                .status(status)
+                .fare(fare)
                 .build();
         kafkaTemplate.send("rideUpdates", message);
     }

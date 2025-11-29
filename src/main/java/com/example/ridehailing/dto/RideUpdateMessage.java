@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,4 +16,5 @@ public class RideUpdateMessage {
     private Long rideId;
     private Long userId;
     private RideStatus status;
+    private BigDecimal fare;
 }
